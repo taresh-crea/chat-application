@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat App UI</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .notification {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    background-color: #4CAF50;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 5px;
+    display: none;
+    z-index: 1000;
+  }
+  .logout-btn {
+    margin-left: auto;
+    cursor: pointer;
+    color: white;
+    background-color: #f44336;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 3px;
+  }
+  .chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN PAGE -->
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <h1>Welcome to ChatApp 💬</h1>
+    <input type="text" id="username" placeholder="Username">
+    <input type="password" id="password" placeholder="Password">
+    <button onclick="login()">Login</button>
+  </div>
+</div>
+
+<!-- CHAT PAGE -->
+<div class="chat-page" id="chatPage" style="display:none;">
+  <div class="chat-container">
+    <!-- LEFT CHAT LIST -->
+    <div class="chat-list">
+      <div class="chat-header">Chats</div>
+      <div class="members" id="memberList"></div>
+    </div>
+
+    <!-- RIGHT CHAT WINDOW -->
+    <div class="chat-window">
+      <div class="chat-header" id="chatHeader">
+        <span id="chatName">Name</span>
+        <button class="logout-btn" onclick="logout()">Logout</button>
+      </div>
+      <div class="chat-box" id="chatBox"></div>
+      <div class="chat-input">
+        <input type="text" id="userMessage" placeholder="Type a message..." disabled>
+        <button onclick="sendMessage()" disabled>Send</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Notification -->
+<div class="notification" id="notification"></div>
+
+<script>
+  const members = ["Divya","Arun","Meena","Raghu","Sita","Vikram","Anita","Kumar","Latha","Ravi"];
+  const memberList = document.getElementById('memberList');
+  const chatBox = document.getElementById('chatBox');
+  const chatHeader = document.getElementById('chatName');
+  const inputField = document.getElementById('userMessage');
+  const sendBtn = document.querySelector(".chat-input button");
+  const notification = document.getElementById('notification');
+
+  let currentMember = "";
+  const conversations = {};
+  const botIndex = {};
+
+  const botReplies = {
+    "Divya":["Hi! How are you?","Where are you from?","How old are you?","What are your hobbies?","Nice, sounds fun!","Bye 😄"],
+    "Arun":["Hey! How’s your day?","Which city are you in?","Do you like coding?","Favorite programming language?","Cool! Tell me more.","Bye 😎"],
+    "Meena":["Hi there! How are you?","Your favorite color?","Do you like music?","Favorite song?","Great choice!","Bye 👋"],
+    "Raghu":["Hello! How’s it going?","Where do you live?","Any hobbies?","Do you like sports?","Awesome!","Bye 😊"],
+    "Sita":["Hi! What’s up?","Your age?","Do you like reading?","Favorite book?","Interesting!","Bye!"],
+    "Vikram":["Hey! How’s everything?","Which city are you from?","Do you code?","Preferred language?","Cool!","Bye 😎"],
+    "Anita":["Hello! How’s your day?","Where are you from?","Do you like painting?","Favorite color?","Nice!","Bye 👋"],
+    "Kumar":["Hi! How are you?","Your city?","Do you like sports?","Favorite game?","Great!","Bye 😄"],
+    "Latha":["Hey! What’s new?","Your age?","Do you enjoy music?","Favorite artist?","Awesome!","Bye!"],
+    "Ravi":["Hi! How’s it going?","Which city do you live in?","Do you like coding?","Favorite project?","Nice!","Bye 😎"]
+  };
+
+  function login() {
+    const username = document.getElementById('username').value.trim();
+    const password = document.getElementById('password').value.trim();
+    if(username && password){
+      document.getElementById('loginPage').style.display='none';
+      document.getElementById('chatPage').style.display='block';
+      initChat(username);
+      showNotification(`Welcome ${username}!`);
+    } else {
+      alert("Enter username and password");
+    }
+  }
+
+  function logout() {
+    const username = document.getElementById('username').value;
+    document.getElementById('chatPage').style.display='none';
+    document.getElementById('loginPage').style.display='block';
+    document.getElementById('username').value='';
+    document.getElementById('password').value='';
+    chatBox.innerHTML = '';
+    currentMember = '';
+    showNotification(`Goodbye ${username}!`);
+  }
+
+  function initChat(username){
+    // Clear member list to prevent duplicates
+    memberList.innerHTML = '';
+
+    members.forEach(member=>{
+      conversations[member] = [{from:'bot', text:`Hi ${username}, I'm ${member}. Let's chat!`}];
+      botIndex[member] = 0;
+
+      const div = document.createElement('div');
+      div.className='member';
+      div.innerHTML=`<span>${member}</span>`;
+      div.onclick = ()=>selectMember(member);
+      memberList.appendChild(div);
+    });
+  }
+
+  function selectMember(member){
+    currentMember = member;
+    chatHeader.innerText = member;
+    chatBox.innerHTML = '';
+    conversations[member].forEach(msg => addMessage(msg.text, msg.from));
+    inputField.disabled = false;
+    sendBtn.disabled = false;
+    showNotification(`You opened chat with ${member}`);
+  }
+
+  function addMessage(text, type){
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `message ${type}`;
+    msgDiv.innerHTML = `<p>${text}</p>`;
+    chatBox.appendChild(msgDiv);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function sendMessage(){
+    const text = inputField.value.trim();
+    if(!text || !currentMember) return;
+
+    addMessage(text,'user');
+    conversations[currentMember].push({from:'user', text});
+    inputField.value='';
+
+    setTimeout(()=>{
+      const replies = botReplies[currentMember];
+      let replyText;
+      if(botIndex[currentMember] < replies.length){
+        replyText = replies[botIndex[currentMember]];
+        botIndex[currentMember]++;
+      } else {
+        replyText = "Bye! 👋";
+      }
+      addMessage(replyText,'bot');
+      conversations[currentMember].push({from:'bot', text:replyText});
+      showNotification(`${currentMember} sent a message`);
+    },700);
+  }
+
+  function showNotification(msg){
+    notification.innerText = msg;
+    notification.style.display='block';
+    setTimeout(()=>{notification.style.display='none';},3500);
+  }
+</script>
+
+</body>
+</html>
